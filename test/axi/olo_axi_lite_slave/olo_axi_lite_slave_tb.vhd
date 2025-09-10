@@ -103,6 +103,26 @@ architecture sim of olo_axi_lite_slave_tb is
 
 begin
 
+    p_busy : process is
+
+    begin
+        Rb_busy <= '0';
+        wait until rising_edge(Clk);
+        
+        while true loop
+            wait until rising_edge(Clk) and Rb_Wr = '1';
+            wait until rising_edge(Clk);
+            Rb_busy <= '1';
+            wait until rising_edge(Clk) and Rb_Wr = '0';
+            for i in 0 to 16 loop
+                wait until rising_edge(Clk);
+            end loop;
+            Rb_busy <= '1';
+        end loop;
+
+
+    end process p_busy;
+
     -----------------------------------------------------------------------------------------------
     -- TB Control
     -----------------------------------------------------------------------------------------------
@@ -332,7 +352,8 @@ begin
             Rb_WrData           => Rb_WrData,
             Rb_Rd               => Rb_Rd,
             Rb_RdData           => Rb_RdData,
-            Rb_RdValid          => Rb_RdValid
+            Rb_RdValid          => Rb_RdValid,
+            Rb_busy => Rb_busy
         );
 
     -----------------------------------------------------------------------------------------------
