@@ -72,7 +72,8 @@ entity olo_axi_lite_slave is
         Rb_WrData         : out   std_logic_vector(AxiDataWidth_g - 1 downto 0);
         Rb_Rd             : out   std_logic;
         Rb_RdData         : in    std_logic_vector(AxiDataWidth_g - 1 downto 0);
-        Rb_RdValid        : in    std_logic
+        Rb_RdValid        : in    std_logic;
+        Rb_busy           : in    std_logic
     );
 end entity;
 
@@ -82,7 +83,7 @@ end entity;
 architecture rtl of olo_axi_lite_slave is
 
     -- FSM Type
-    type Fsm_t is (Idle, WrCmd, WrData, WrResp, RdCmd, RdData, RdResp);
+    type Fsm_t is (Idle, WrCmd, WrData, WrWaitBusy, WrWaitRdy, WrResp, RdCmd, RdData, RdResp);
 
     -- TwoProcess Record
     type TwoProcess_r is record
@@ -153,13 +154,29 @@ begin
             when WrData =>
                 -- Receive write data
                 if S_AxiLite_WValid = '1' then
-                    v.State   := WrResp;
+                    --v.State   := WrResp;
+                    v.State   := WrWaitBusy;
                     v.WReady  := '0';
                     v.ByteEna := S_AxiLite_WStrb;
                     v.WrData  := S_AxiLite_WData;
                     v.Wr      := '1';
+                    --v.BValid  := '1';
+                end if;
+
+            when WrWaitBusy =>
+                v.Wr      := '1';
+                if Rb_busy = '1' then
+                    v.State   := WrWaitRdy;
+                    v.Wr      := '0';
+                end if;
+
+            when WrWaitRdy =>
+                if Rb_busy = '0' then
+                    v.State   := WrResp;
                     v.BValid  := '1';
                 end if;
+
+
 
             when WrResp =>
                 -- Wait for response transferred
